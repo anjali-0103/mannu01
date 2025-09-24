@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Chatbot with Typing Effect</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .chatbox {
+      width: 400px;
+      height: 550px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+    }
+    .message {
+      background: #e6e6e6;
+      margin: 8px 0;
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 75%;
+    }
+    .user {
+      background: #007bff;
+      color: white;
+      margin-left: auto;
+    }
+    .typing-indicator {
+      font-style: italic;
+      color: gray;
+      margin: 5px 0;
+    }
+    .input-box {
+      display: flex;
+      border-top: 1px solid #ddd;
+    }
+    .input-box input {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      outline: none;
+    }
+    .input-box button {
+      padding: 12px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="chatbox">
+    <div class="messages" id="messages"></div>
+    <div class="input-box">
+      <input type="text" id="userInput" placeholder="Type a message...">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const API_KEY = "AIzaSyA580GQujPihQecHK_nq7zKkx-nXPv8t78"; // <-- Replace with your Gemini API key
+    const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + API_KEY;
+
+    function sendMessage() {
+      const input = document.getElementById('userInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+      addMessage(msg, 'user');
+      input.value = '';
+
+      showTypingIndicator();
+      fetchGeminiResponse(msg);
+    }
+
+    function addMessage(text, type) {
+      const messages = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = `message ${type}`;
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function typeResponse(text) {
+      const messages = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = 'message';
+      messages.appendChild(div);
+
+      let i = 0;
+      function typing() {
+        if (i < text.length) {
+          div.textContent += text.charAt(i);
+          i++;
+          messages.scrollTop = messages.scrollHeight;
+          setTimeout(typing, 40);
+        }
+      }
+      typing();
+    }
+
+    function showTypingIndicator() {
+      const messages = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.className = 'typing-indicator';
+      div.id = 'typing';
+      div.textContent = 'Bot is typing...';
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const typingDiv = document.getElementById('typing');
+      if (typingDiv) typingDiv.remove();
+    }
+
+    async function fetchGeminiResponse(userMessage) {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: userMessage }] }]
+          })
+        });
+
+        const data = await response.json();
+        hideTypingIndicator();
+
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          const botReply = data.candidates[0].content.parts[0].text;
+          typeResponse(botReply);
+        } else {
+          typeResponse("Sorry, I couldn't understand that.");
+        }
+      } catch (error) {
+        hideTypingIndicator();
+        typeResponse("Error: Unable to reach the server.");
+      }
+    }
+  </script>
+</body>
+</html>
